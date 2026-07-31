@@ -205,7 +205,7 @@ docker exec -it my_postgres psql -U postgres -d starter_db
 ## ❓ FAQ
 
 **Q：想改專案名稱／套件名？**
-可以但不急。要改的話 IDE 對 `com.example.starter` 按 Refactor → Rename，pom 的 `artifactId` 順手改，別手動搬檔案。
+可以但不急。要改的話 IDE 對 `com.linalingling.bbb` 按 Refactor → Rename，pom 的 `artifactId` 順手改，別手動搬檔案。
 
 **Q：怎麼弄一個 ADMIN 帳號測 `/api/example/admin`？**
 先註冊一個帳號，再進資料庫把 ROLE_ADMIN 綁給他：

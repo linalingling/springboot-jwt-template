@@ -5,9 +5,9 @@ spring:
   datasource:
     # 課程 Postgres 容器：docker run -d --name my_postgres -e POSTGRES_PASSWORD=my_secret_password -p 5433:5432 postgres:15
     # 資料庫請先建立：docker exec my_postgres psql -U postgres -c "CREATE DATABASE starter_db;"
-    url: jdbc:postgresql://localhost:5433/starter_db
-    username: postgres
-    password: my_secret_password
+    url: jdbc:postgresql://localhost:5432/starter_db
+    username: my_postgres
+    password: password123
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:

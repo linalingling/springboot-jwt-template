@@ -8,11 +8,11 @@
 		<version>4.0.6</version>
 		<relativePath/>
 	</parent>
-	<groupId>com.example</groupId>
+	<groupId>com.linalingling</groupId>
 	<artifactId>starter</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>springboot-jwt-template</name>
-	<description>課程 Spring Boot 起手專案：JWT 認證已打通，專注做你的業務功能</description>
+	<name>BioBehaviorBridge</name>
+	<description>整合病歷、生活數據、訓練紀錄的跨機構健康資料交換系統</description>
 	<properties>
 		<java.version>25</java.version>
 	</properties>
