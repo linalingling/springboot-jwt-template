@@ -25,7 +25,7 @@ public class Allergy{
     @JoinColumn(name = "diagnosed_by",nullable = false)
     private User userOfDoctor;
 
-    @Column(, nullable = false)
+    @Column( nullable = false)
     private String allergen;
 
     public enum SeverityLevel{
