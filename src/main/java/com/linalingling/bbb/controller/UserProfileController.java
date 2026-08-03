@@ -7,6 +7,8 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.http.ResponseEntity;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import com.linalingling.bbb.security.UserPrincipal;
 
 @RestController
 @RequestMapping("/api/user-profiles")
@@ -17,9 +19,10 @@ public class UserProfileController{
     private final UserProfileService userProfileService;
 
     @PutMapping
-    public ResponseEntity<UserProfile> upsert(@Valid @RequestBody UserProfileRequest 	request){
+    public ResponseEntity<UserProfile> upsert(@AuthenticationPrincipal UserPrincipal principal,
+                                              @Valid @RequestBody UserProfileRequest 	request){
 
         UserProfile result = userProfileService.createOrUpdateProfile(
-                request.getUserId(),request.getName(),request.getBirthDate());
+                principal.getId(),request.getName(),request.getBirthDate());
 
         return ResponseEntity.ok(result);}}

@@ -8,8 +8,7 @@ import java.time.LocalDate;
 @Getter @Setter
 public class UserProfileRequest{
 
-    @NotNull
-    private Long userId;
+
 
     @NotNull
     private String name;
