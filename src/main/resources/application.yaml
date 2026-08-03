@@ -9,6 +9,13 @@ spring:
     username: ${DB_USERNAME:my_postgres}
     password: ${DB_PASSWORD:password123}
     driver-class-name: org.postgresql.Driver
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+  cache:
+    type: redis
   jpa:
     hibernate:
       ddl-auto: validate   # schema 由 Flyway 管理，Hibernate 只驗證；不要改成 update！
