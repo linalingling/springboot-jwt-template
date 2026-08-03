@@ -8,10 +8,11 @@ import com.linalingling.bbb.entity.User;
 import java.time.LocalDate;
 import java.util.Optional;
 import java.math.BigDecimal;
-
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class LifestyleDataService {
 
     private final LifestyleDataRepository lifestyleDataRepository;

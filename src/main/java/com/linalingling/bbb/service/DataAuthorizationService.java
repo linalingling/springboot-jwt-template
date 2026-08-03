@@ -8,11 +8,13 @@ import com.linalingling.bbb.entity.User;
 import org.springframework.security.access.AccessDeniedException;
 import java.time.LocalDateTime;
 import java.util.Optional;
+import org.springframework.transaction.annotation.Transactional;
 
 
 
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class DataAuthorizationService{
 
     private final DataAuthorizationRepository dataAuthorizationRepository;
