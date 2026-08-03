@@ -2,7 +2,9 @@ package com.linalingling.bbb.controller;
 
 import com.linalingling.bbb.entity.Allergy;
 import com.linalingling.bbb.dto.AllergyRequest;
+import com.linalingling.bbb.security.UserPrincipal;
 import com.linalingling.bbb.service.AllergyService;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpStatus;
@@ -19,10 +21,11 @@ public class AllergyController{
     private final AllergyService allergyService;
 
     @PostMapping
-    public ResponseEntity<Allergy> create(@Valid @RequestBody AllergyRequest request){
+    public ResponseEntity<Allergy> create(@AuthenticationPrincipal UserPrincipal principal,
+                                          @Valid @RequestBody AllergyRequest request){
 
         Allergy result = allergyService.createAllergy(
-                request.getUserId(),request.getDoctorId(),request.getAllergen(),request.getSeverityLevel(),request.getClinicalNotes(),request.getDiagnosedDate());
+                request.getUserId(), principal.getId(), request.getAllergen(),request.getSeverityLevel(),request.getClinicalNotes(),request.getDiagnosedDate());
 
         return ResponseEntity.status(HttpStatus.CREATED).body(result);}
 

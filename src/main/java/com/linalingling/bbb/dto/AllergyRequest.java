@@ -13,8 +13,7 @@ public class AllergyRequest{
     @NotNull
     private Long userId;
 
-    @NotNull
-    private Long doctorId;
+
 
     @NotNull
     private String allergen;

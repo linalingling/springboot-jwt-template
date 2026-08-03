@@ -8,8 +8,7 @@ import jakarta.validation.constraints.NotNull;
 @Getter @Setter
 public class GrantAuthorizationRequest {
 
-    @NotNull
-    private Long patientUserId;
+
 
     @NotNull
     private Long targetUserId;
