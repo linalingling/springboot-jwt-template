@@ -7,6 +7,8 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.http.ResponseEntity;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import com.linalingling.bbb.security.UserPrincipal;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/lifestyle-data")
@@ -17,11 +19,12 @@ public class LifestyleDataController{
     private final LifestyleDataService lifestyleDataService;
 
     @PutMapping
-    public ResponseEntity<LifestyleData> upsert(@Valid @RequestBody LifestyleDataRequest 	request){
+    public ResponseEntity<LifestyleData> upsert(@AuthenticationPrincipal UserPrincipal principal,
+                                                @Valid @RequestBody LifestyleDataRequest 	request){
 
         LifestyleData result = lifestyleDataService.recordDailyData(
 
-                request.getUserId(),request.getRecordDate(),request.getWeight(),request.getHeight(),
+                principal.getId(), request.getRecordDate(),request.getWeight(),request.getHeight(),
                 request.getExerciseType(),request.getExerciseDuration(),request.getFatigueLevel(),
                 request.getIsRelaxed(),request.getRelaxActivity(),request.getDietNote());
 

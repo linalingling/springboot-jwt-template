@@ -11,8 +11,7 @@ import java.math.BigDecimal;
 
 public class LifestyleDataRequest{
 
-    @NotNull
-    private Long userId;
+
 
     @NotNull
     private LocalDate recordDate;
