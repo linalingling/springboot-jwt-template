@@ -31,6 +31,6 @@ public class DataAuthorizationController {
 
             @RequestParam DataAuthorization.Scope scope){
 
-        dataAuthorizationService.revokeAuthorization(principal.getId(), targetUserId,scope);
+        dataAuthorizationService.revokeAuthorization(targetUserId, principal.getId(), scope);
         return ResponseEntity.noContent().build();}
 }
