@@ -1,219 +1,227 @@
-# 🚀 Spring Boot JWT 起手專案（課程模板）
+# BioBehaviorBridge (BBB)
 
-> **這個模板幫你把最麻煩的都打通了**：JWT 註冊／登入／refresh／登出、Spring Security 設定、Flyway、PostgreSQL 連線。
-> **你要做的只有一件事：專注在你自己的業務功能** —— 設計 Schema、寫 Entity / Repository / Service / Controller，最後把 API 路徑加進 SecurityConfig。
+## 專案簡介
 
-技術棧（跟課程一致，不要自己改版本）：**Java 25 · Spring Boot 4.0.6 · PostgreSQL 15 · Flyway · Spring Security 7 · jjwt 0.12.6 · Lombok**
+BioBehaviorBridge 是一套跨機構健康資料整合系統，目標是讓使用者只需攜帶一個帳號（未來可擴充至健保卡、護照等身分憑證），
+無論在世界哪個角落就醫，醫生都能即時讀取其過去病史、用藥紀錄，以及日常生活數據（運動頻率、疲勞程度、飲食習慣等），協助快速且精準地判斷治療方式。
 
----
+系統採用「病人自主授權」模式：使用者可自由決定將哪些範圍的資料（醫療端 / 生活端 / 教練端）分享給哪些醫生或教練，並可隨時撤銷授權。
+撤銷不會刪除歷史紀錄，僅停止未來的資料存取，確保稽核軌跡完整。
 
-## ⚡ 第一次啟動（5 分鐘）
+除醫生端外，系統也規劃了教練端：教練可依使用者授權，整合其可公開的疾病資訊與生活數據，規劃最適合的運動方案。
 
-### 1. 準備資料庫（PostgreSQL 容器）
+## 技術棧
 
-```bash
-# 已經有課程的 my_postgres 容器就跳過這步
-docker run -d --name my_postgres \
-  -e POSTGRES_PASSWORD=my_secret_password \
-  -p 5433:5432 postgres:15
+- Java 25 (Eclipse Temurin)
+- Spring Boot 4.0.6
+- Spring Security + JWT
+- Spring Data JPA / Hibernate
+- PostgreSQL 15
+- Flyway（資料庫版本控管）
+- Redis（快取層）
+- Docker / Docker Compose
 
-# 建立這個專案用的資料庫
-docker exec my_postgres psql -U postgres -c "CREATE DATABASE starter_db;"
-```
+## 系統架構
 
-### 2. 啟動專案
+- 三層式架構：Controller → Service → Repository
+- 認證：JWT（Access Token 15 分鐘 / Refresh Token 7 天）
+- 授權模型：RBAC（使用者可擁有多重角色：USER / DOCTOR / COACH）+ 細粒度資料授權表（data_authorizations），兩者分層檢查
+- 資料不可變原則：生活數據、醫療紀錄採 append-only 設計，只新增不覆蓋，確保歷史資料可追溯
+- 授權撤銷採軟刪除設計（revoked_at 欄位 + Partial Unique Index），保留完整稽核軌跡
 
-```bash
-./mvnw spring-boot:run
-```
-
-看到 `Started StarterApplication` 就成功了。Flyway 會自動建好認證相關的表（users / roles / permissions / refresh_tokens）。
-
-### 3. 驗證 JWT 有通（照順序執行）
-
-```bash
-# ① 註冊 → 201
-curl -X POST http://localhost:8080/api/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{"username":"test1","email":"test1@example.com","password":"password123"}'
-
-# ② 登入 → 200，拿到 accessToken 和 refreshToken
-curl -X POST http://localhost:8080/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"username":"test1","password":"password123"}'
-
-# ③ 帶 token 打受保護 API → 200 回你的使用者資訊
-#    （把 <TOKEN> 換成上一步的 accessToken）
-curl http://localhost:8080/api/example/protected \
-  -H "Authorization: Bearer <TOKEN>"
-
-# ④ 不帶 token 打同一支 → 401/403（證明保護有效）
-curl -i http://localhost:8080/api/example/protected
-```
-
-四步全過 = 模板正常，開始做你的功能。
-
----
-
-## 📁 專案結構（✅ 已打通不用動；✏️ 你要寫的）
+## 專案結構
 
 ```
-src/main/java/com/example/starter/
-├── StarterApplication.java        ✅ 進入點
+src/main/java/com/linalingling/bbb/
+├── BbbApplication.java
 ├── config/
-│   └── SecurityConfig.java        ✏️ 只改一個地方：把你的 API 路徑規則加進標記區
-├── security/                      ✅ JWT 全套（JwtUtils / Filter / UserPrincipal / UserDetailsService）
-├── entity/
-│   ├── User / Role / Permission / RefreshToken   ✅ 認證用
-│   └── （你的 Entity 加在這裡）    ✏️
-├── repository/
-│   ├── User / Role / RefreshToken Repository     ✅
-│   └── （你的 Repository 加在這裡）✏️
-├── service/
-│   ├── RefreshTokenService.java   ✅
-│   └── （你的 Service 加在這裡）   ✏️
-├── controller/
-│   ├── AuthController.java        ✅ 註冊/登入/refresh/登出
-│   ├── ExampleController.java     🎓 示範用，看懂後可刪
-│   └── （你的 Controller 加在這裡）✏️
-├── dto/                           ✏️ 你的 Request/Response DTO（已有登入註冊的可參考）
-└── exception/                     ✏️ 你的自訂例外（已有兩個 Token 例外可參考）
+│   ├── SecurityConfig.java        # JWT 驗證、CORS 設定
+│   └── RedisCacheConfig.java      # Redis CacheManager 設定
+├── security/                      # JWT 全套（JwtUtils / Filter / UserPrincipal）
+├── entity/                        # User / Role（認證）+ UserProfile / Allergy /
+│                                     LifestyleData / MedicalRecord / MedicationRecord /
+│                                     DataAuthorization / TrainingRecord / TrainingExercise
+├── repository/                    # 對應以上 Entity 的 Spring Data JPA Repository
+├── service/                       # 業務邏輯層，含授權檢查、UPSERT 邏輯、Redis 快取
+├── controller/                    # RESTful API 端點
+├── dto/                           # Request DTO，含 Bean Validation
+└── exception/
 
 src/main/resources/
-├── application.yaml               ✅（改 DB 名稱可以，其他別動）
-└── db/migration/
-    ├── V1__auth_schema.sql        ✅ 認證表，不要改這支！
-    └── V2__your_schema.sql        ✏️ 你的業務表從 V2 開始
+├── application.yaml
+└── db/migration/                  # V1（認證，模板內建）～V7（授權表）
+```
+## ERD
+
+```mermaid
+erDiagram
+    USERS ||--o| USER_PROFILE : has
+    USERS ||--o{ USER_ROLES : assigned
+    ROLES ||--o{ USER_ROLES : "assigned to"
+    USERS ||--o{ ALLERGIES : owns
+    USERS ||--o{ LIFESTYLE_DATA : records
+    USERS ||--o{ MEDICAL_RECORDS : "is patient"
+    USERS ||--o{ MEDICAL_RECORDS : "is doctor"
+    USERS ||--o{ TRAINING_RECORDS : "is trainee"
+    USERS ||--o{ TRAINING_RECORDS : "is coach"
+    USERS ||--o{ DATA_AUTHORIZATIONS : grants
+    MEDICAL_RECORDS ||--o{ MEDICATION_RECORDS : includes
+    TRAINING_RECORDS ||--o{ TRAINING_EXERCISES : includes
+
+    USERS {
+        bigint id PK
+        string username
+        string password
+    }
+    ROLES {
+        bigint id PK
+        string name
+    }
+    USER_ROLES {
+        bigint user_id FK
+        bigint role_id FK
+    }
+    USER_PROFILE {
+        bigint id PK
+        bigint user_id FK
+        string name
+        date birth_date
+    }
+    ALLERGIES {
+        bigint id PK
+        bigint user_id FK
+        bigint diagnosed_by FK
+        string allergen
+        string severity_level
+    }
+    LIFESTYLE_DATA {
+        bigint id PK
+        bigint user_id FK
+        date record_date
+        decimal weight
+        decimal height
+        string fatigue_level
+    }
+    MEDICAL_RECORDS {
+        bigint id PK
+        bigint user_id FK
+        bigint doctor_id FK
+        date visit_date
+        text diagnosis
+    }
+    MEDICATION_RECORDS {
+        bigint id PK
+        bigint medical_record_id FK
+        string drug_name
+        string dosage
+    }
+    TRAINING_RECORDS {
+        bigint id PK
+        bigint user_id FK
+        bigint coach_id FK
+        date training_date
+        string coach_notes
+    }
+    TRAINING_EXERCISES {
+        bigint id PK
+        bigint training_record_id FK
+        string exercise_name
+        int sets
+        int reps
+        decimal weight
+    }
+    DATA_AUTHORIZATIONS {
+        bigint id PK
+        bigint user_id FK
+        bigint target_user_id FK
+        string scope
+        timestamp revoked_at
+    }
 ```
 
----
 
-## ✏️ 你的開發流程（每個功能都走這五步）
 
-以「商品 Product」為例：
 
-### Step 1：設計 Schema → 開新的 migration
 
-建 `src/main/resources/db/migration/V2__create_products.sql`（**永遠開新檔，不改舊的 V1**）：
+## 本機啟動步驟
 
-```sql
-CREATE TABLE products (
-    id          BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    name        VARCHAR(200)   NOT NULL,
-    price       DECIMAL(10, 2) NOT NULL,
-    stock       INT            NOT NULL DEFAULT 0,
-    created_at  TIMESTAMP      NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-```
+### 方式一：Docker Compose（推薦，一鍵啟動）
 
-> PostgreSQL 語法注意：主鍵用 `GENERATED ALWAYS AS IDENTITY`（不是 MySQL 的 `AUTO_INCREMENT`）；索引要獨立 `CREATE INDEX`。
+\`\`\`bash
+docker-compose up --build
+\`\`\`
 
-### Step 2：寫 Entity
+會同時啟動 app（8080）、PostgreSQL（5432）、Redis（6379）三個容器，Flyway 會自動建立完整 schema。
 
-```java
-@Entity
-@Table(name = "products")
-@Getter @Setter
-@NoArgsConstructor
-public class Product {
+### 方式二：本機手動啟動
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)   // 一定用 IDENTITY，不要用 AUTO
-    private Long id;
+1. 啟動 PostgreSQL 容器：
+   \`\`\`bash
+   docker run -d --name my_postgres -e POSTGRES_USER=my_postgres -e POSTGRES_PASSWORD=password123 -p 5432:5432 postgres:15
+   docker exec my_postgres psql -U my_postgres -d postgres -c "CREATE DATABASE starter_db;"
+   \`\`\`
 
-    @Column(nullable = false, length = 200)
-    private String name;
+2. 啟動 Redis 容器：
+   \`\`\`bash
+   docker run -d --name my_redis -p 6379:6379 redis:7
+   \`\`\`
 
-    @Column(nullable = false)
-    private BigDecimal price;
+3. 執行專案：
+   \`\`\`bash
+   ./mvnw spring-boot:run
+   \`\`\`
 
-    @Column(nullable = false)
-    private Integer stock = 0;
+## API 清單
 
-    @Column(name = "created_at")
-    private LocalDateTime createdAt;
-}
-```
+| 方法 | 路徑 | 說明 |
+|---|---|---|
+| POST | /api/auth/register | 註冊 |
+| POST | /api/auth/login | 登入（回傳 accessToken + refreshToken） |
+| POST | /api/auth/refresh | 換發 Access Token（Refresh Token 會輪換） |
+| POST | /api/auth/logout | 登出（撤銷 Refresh Token） |
+| PUT | /api/user-profiles | 建立/更新個人資料（Upsert） |
+| PUT | /api/lifestyle-data | 記錄每日生活數據（Upsert，欄位可部分更新） |
+| POST | /api/allergies | 新增過敏紀錄（醫生填寫） |
+| GET | /api/allergies/patient/{patientId} | 查詢病人過敏紀錄 |
+| GET | /api/medical-records/patient/{patientId} | 醫生查詢病人醫療紀錄（含 Redis 快取、授權檢查） |
+| POST | /api/authorizations | 病人授權醫生/教練存取資料 |
+| DELETE | /api/authorizations | 撤銷授權（軟刪除，保留歷史紀錄） |
 
-### Step 3：寫 Repository
+## 安全性設計
 
-```java
-public interface ProductRepository extends JpaRepository<Product, Long> {
-    // 衍生查詢的回傳型別用 Optional<T> / List<T> / Page<T>
-    Optional<Product> findByName(String name);
-}
-```
+- 所有涉及個人資料的 API，使用者身分一律來自 JWT Token（`@AuthenticationPrincipal`），前端無法偽造 userId
+- 醫療資料存取採雙層檢查：Spring Security 角色檢查（是否具備對應角色）+ Service 層細粒度授權檢查（是否被該病人明確授權）
+- Redis 快取 key 組合 doctorId + patientId，避免不同醫生間快取互相繞過授權檢查
+- 五個核心 Service 均加上 `@Transactional`，確保跨步驟資料庫操作（查詢 → 修改 → 存檔）的一致性
 
-### Step 4：寫 Service（業務邏輯放這裡，不放 Controller）＋ Controller
+## AI 協作說明
 
-參考 `RefreshTokenService` / `AuthController` 的寫法。拿目前登入者：
+開發過程使用 Claude 作為 Socratic 式導師進行架構討論與程式碼實作，以下為幾個 AI 初始建議經我發現問題後修正的具體案例：
 
-```java
-@GetMapping("/mine")
-public List<OrderResponse> myOrders(@AuthenticationPrincipal UserPrincipal user) {
-    return orderService.findByUserId(user.getId());
-}
-```
+**案例一：授權表 UNIQUE 約束未考慮「撤銷後重新授權」情境**
+最初設計 `data_authorizations` 表時，直覺想法是用一般的 `UNIQUE(user_id, target_user_id, scope)` 約束防止重複授權。
+但深入討論後發現：一般 UNIQUE 約束會導致「撤銷後無法對同一位醫生重新授權」（因為舊紀錄雖已標記撤銷仍佔用該組合）。
+最終改用 PostgreSQL 的 Partial Unique Index：
 
-### Step 5：把 API 路徑加進 SecurityConfig 👈 **別忘了這步！**
+\`\`\`sql
+CREATE UNIQUE INDEX idx_active_authorization
+ON data_authorizations (user_id, target_user_id, scope)
+WHERE revoked_at IS NULL;
+\`\`\`
+只對「目前有效」的授權要求唯一性，已撤銷的歷史紀錄不受限制，同時保留完整稽核軌跡。
 
-打開 `config/SecurityConfig.java`，找到 `👇👇👇 你的 API 權限規則加在這裡 👇👇👇` 標記區：
+**案例二：lifestyle_data 與 users 的關聯基數判斷錯誤**
+撰寫 Entity 時，一開始誤將 `LifestyleData` 對 `User` 的關係寫成 `@OneToOne`，理由是「一個人一天一筆」。
+但實際上一個使用者會累積多天、多筆生活數據紀錄，`@OneToOne` 代表「一個使用者在此表中僅能有一列」，與實際情境矛盾。
+真正的「一天一筆」限制應由 `UNIQUE(user_id, record_date)` 這個資料庫層級約束處理，而非 Entity 關係基數本身；正確關係應為 `@ManyToOne`。
 
-```java
-// 商品查詢公開、修改要登入（沒寫的路徑預設「要登入」）
-.requestMatchers(HttpMethod.GET, "/api/products/**").permitAll()
-// 管理端只給 ADMIN
-.requestMatchers("/api/admin/**").hasRole("ADMIN")
-```
+**案例三：is_relaxed 欄位型別選擇（boolean vs Boolean）**
+撰寫 `LifestyleData` Entity 時，`is_relaxed`（是否有放鬆）最初使用 Java 原始型別 `boolean`。
+但此欄位在資料庫設計上刻意允許 NULL（使用者當天可能未填寫此項），而原始型別 `boolean` 僅能表示 true/false，無法表示「未填寫」。
+改用包裝類別 `Boolean` 後才能正確對應資料庫的 nullable 欄位語意。
 
-規則由上而下比對：**具體的寫前面**，最後一條 `anyRequest().authenticated()` 不要動。
-新 API 忘了設定也不會裸奔——預設就是要登入。
+## 未來規劃
 
----
-
-## 💣 高頻踩坑（都是真實案例，先看再寫）
-
-| # | 坑 | 症狀 | 解法 |
-|---|----|------|------|
-| 1 | 新 Entity 沒寫 migration | 啟動就爆 `missing table` | `ddl-auto` 是 `validate`，每張新表都要有 `V<n>__*.sql` |
-| 2 | `GenerationType.AUTO` | 啟動爆 `missing sequence` | 一律用 `IDENTITY` |
-| 3 | Service 有 `deleteByXxx` 沒加 `@Transactional` | **第一次能動、第二次才爆** | Service 類別加 `@Transactional` |
-| 4 | Entity 用 `@Builder` + 欄位初始值 | builder 建出來欄位是 null，INSERT 撞 NOT NULL | 初始值欄位加 `@Builder.Default` |
-| 5 | Enum 欄位沒 `@Enumerated(EnumType.STRING)` | schema 驗證型別不符 | 加註解，DB 用 VARCHAR |
-| 6 | 抄到 Boot 3 教學的 Security 寫法 | `new DaoAuthenticationProvider()` 編譯錯誤 | 本模板已是 Boot 4 寫法，照模板 |
-| 7 | 忘了在 SecurityConfig 放行公開 API | 前端一直 401/403 | 回去走 Step 5 |
-| 8 | 問 AI 不講版本 | 拿到 Boot 3 + MySQL 程式碼 | 開頭聲明「Java 25、Spring Boot 4.0.6、PostgreSQL 15、Flyway」 |
-
----
-
-## 🔄 常用指令
-
-```bash
-./mvnw spring-boot:run          # 啟動
-./mvnw clean test-compile       # 編譯檢查（改完一批程式先跑這個）
-./mvnw clean package            # 打包
-
-# 資料庫整個重來（會清光資料！Flyway 會重新從 V1 跑）
-docker exec my_postgres psql -U postgres -c "DROP DATABASE starter_db;" -c "CREATE DATABASE starter_db;"
-
-# 進資料庫看表
-docker exec -it my_postgres psql -U postgres -d starter_db
-```
-
----
-
-## ❓ FAQ
-
-**Q：想改專案名稱／套件名？**
-可以但不急。要改的話 IDE 對 `com.linalingling.bbb` 按 Refactor → Rename，pom 的 `artifactId` 順手改，別手動搬檔案。
-
-**Q：怎麼弄一個 ADMIN 帳號測 `/api/example/admin`？**
-先註冊一個帳號，再進資料庫把 ROLE_ADMIN 綁給他：
-```bash
-docker exec my_postgres psql -U postgres -d starter_db -c \
-  "INSERT INTO user_roles (user_id, role_id) SELECT u.id, r.id FROM users u, roles r WHERE u.username='test1' AND r.name='ROLE_ADMIN';"
-```
-重新登入拿新 token（角色寫在 token 裡，舊 token 不會自動更新）。
-
-**Q：全域例外處理、Swagger、Redis 什麼時候加？**
-之後課程會教（36 之後），到時候直接往這個專案上加即可。現在先把業務功能做好。
+- 教練端（training_records / training_exercises）資料表已完成設計並建立於資料庫 schema 中，考量開發時程，
+- 本次繳交版本優先完整實作醫生-病人授權主線；教練端 API 可直接沿用相同的 `data_authorizations` 授權模式擴充，無需更動資料庫結構
+- 快取撤銷聯動：授權撤銷時主動清除相關快取（目前為簡化版本，快取存活期間內即使授權被撤銷仍可能取得快取結果）
